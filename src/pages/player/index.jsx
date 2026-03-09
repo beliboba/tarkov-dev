@@ -1226,7 +1226,7 @@ function Player() {
     }, [playerData, accountId, gameMode, turnstileToken, fetchProfile]);
 
     const customProfileImageLink = useMemo(() => {
-        if (playerData.aid === 0) {
+        if (playerData.aid === 0 || !playerData.customization) {
             return;
         }
 
