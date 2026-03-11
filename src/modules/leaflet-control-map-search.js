@@ -15,7 +15,7 @@ L.Control.MapSearch = L.Control.extend({
         L.DomEvent.disableClickPropagation(wrapper);
         L.DomEvent.disableScrollPropagation(wrapper);
 
-        const form = (this._form = L.DomUtil.create("div", className + "-list"));
+        const form = (this._form = L.DomUtil.create("form", className + "-list"));
         wrapper.appendChild(form);
 
         if (collapsed) {
@@ -35,7 +35,7 @@ L.Control.MapSearch = L.Control.extend({
 
         const link = (this._searchLink = L.DomUtil.create("a", className + "-toggle", wrapper));
         link.href = "#";
-        link.title = "Search";
+        link.title = this.options.searchTitle ?? "Search";
 
         if (L.Browser.touch) {
             L.DomEvent.on(link, "click", L.DomEvent.stop);
@@ -57,6 +57,7 @@ L.Control.MapSearch = L.Control.extend({
 
         const resetSearch = L.DomUtil.create("button", "maps-search-wrapper-reset-search", form);
         resetSearch.innerHTML = "X";
+        resetSearch.type = "button";
 
         const markers = {
             objectiveMarkers: [],
@@ -163,6 +164,96 @@ L.Control.MapSearch = L.Control.extend({
             }, 300),
         );
 
+        this._eventTarget = new EventTarget();
+        this.hiddenTasks = new Set();
+        if (this.options.hiddenTasks) {
+            for (const taskId of this.options.hiddenTasks) {
+                this.hiddenTasks.add(taskId);
+            }
+        }
+
+        const taskFilterTitleDiv = L.DomUtil.create("div", "maps-search-wrapper-task-filter-title", form);
+        const taskFilterTitle = L.DomUtil.create("span", "maps-search-wrapper-task-filter-title", taskFilterTitleDiv);
+        taskFilterTitle.innerText = this.options.taskFilterTitle ?? "Task Filter";
+        const buttonContainer = L.DomUtil.create(
+            "span",
+            "maps-search-task-filter-button-container",
+            taskFilterTitleDiv,
+        );
+        const showAllButton = L.DomUtil.create("button", "maps-search-task-filter-show-all", buttonContainer);
+        showAllButton.innerText = this.options.showAllButtonText ?? "Show";
+        showAllButton.type = "button";
+        showAllButton.addEventListener("click", () => {
+            const taskChecks = this.taskListDiv.getElementsByClassName("maps-search-task-selector");
+            for (const taskCheck of taskChecks) {
+                if (taskCheck.checked) {
+                    continue;
+                }
+                taskCheck.checked = true;
+            }
+            for (const taskId of this.hiddenTasks.values()) {
+                this.toggleTask(taskId, true);
+            }
+            this.hiddenTasks.clear();
+            const event = new Event("hiddenTasksChanged");
+            event.tasks = [...this.hiddenTasks];
+            this._eventTarget.dispatchEvent(event);
+        });
+        const hideAllButton = L.DomUtil.create("button", "maps-search-task-filter-hide-all", buttonContainer);
+        hideAllButton.innerText = this.options.hideAllButtonText ?? "Hide";
+        hideAllButton.type = "button";
+        hideAllButton.addEventListener("click", () => {
+            const taskChecks = this.taskListDiv.getElementsByClassName("maps-search-task-selector");
+            for (const taskCheck of taskChecks) {
+                if (!taskCheck.checked) {
+                    continue;
+                }
+                taskCheck.checked = false;
+                this.toggleTask(taskCheck.dataset.taskId, false);
+                this.hiddenTasks.add(taskCheck.dataset.taskId);
+            }
+            const event = new Event("hiddenTasksChanged");
+            event.tasks = [...this.hiddenTasks];
+            this._eventTarget.dispatchEvent(event);
+        });
+
+        const taskFilter = L.DomUtil.create("input", "maps-search-task-filter", form);
+        taskFilter.setAttribute("type", "text");
+        taskFilter.setAttribute("placeholder", this.options.taskFilterPlaceholderText ?? "Task name");
+
+        //const info = L.DomUtil.create("div", "maps-search-wrapper-info", form);
+        //info.innerHTML = `<b>${this.options.descriptionText ?? "Supports multisearch (e.g. 'labs, ledx, bitcoin')"}</b>`;
+
+        const resetTaskFilter = L.DomUtil.create("button", "maps-search-wrapper-reset-task-filter", form);
+        resetTaskFilter.innerHTML = "X";
+        resetTaskFilter.type = "button";
+
+        resetTaskFilter.addEventListener("click", () => {
+            taskFilter.value = "";
+            taskFilter.dispatchEvent(new Event("input"));
+        });
+
+        this.taskListDiv = L.DomUtil.create("div", "maps-search-task-list", form);
+
+        // Prevent zooming of the map by double clicking the task filter field
+        taskFilter.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+        });
+
+        taskFilter.addEventListener("input", (e) => {
+            const inputValue = e.target.value.trim().toLowerCase();
+
+            const taskNameElements = this.taskListDiv.getElementsByClassName("maps-search-task-name-label");
+            for (const taskNameElement of taskNameElements) {
+                const showTask = !inputValue || taskNameElement.innerText.toLowerCase().includes(inputValue);
+                if (showTask) {
+                    taskNameElement.parentElement?.classList.remove("hide-task");
+                } else {
+                    taskNameElement.parentElement?.classList.add("hide-task");
+                }
+            }
+        });
+
         return wrapper;
     },
 
@@ -170,7 +261,8 @@ L.Control.MapSearch = L.Control.extend({
         L.DomUtil.addClass(this._container, "leaflet-control-icon-search-expanded");
         this._form.style.height = null;
         var acceptableHeight = this._map.getSize().y - (this._container.offsetTop + 50);
-        if (acceptableHeight < this._form.clientHeight) {
+        //acceptableHeight = Math.max(acceptableHeight, 225);
+        if (acceptableHeight < this._form.clientHeight || this._form.clientHeight === 0) {
             L.DomUtil.addClass(this._form, "leaflet-control-icon-search-scrollbar");
             this._form.style.height = acceptableHeight + "px";
         } else {
@@ -205,6 +297,7 @@ L.Control.MapSearch = L.Control.extend({
             );
         }
     },
+
     removeCollapseListeners: function () {
         this._map.off("click", this._collapse, this);
 
@@ -219,6 +312,7 @@ L.Control.MapSearch = L.Control.extend({
             );
         }
     },
+
     setCollapse: function (collapsed) {
         this.options.collapsed = collapsed;
         if (collapsed) {
@@ -228,6 +322,73 @@ L.Control.MapSearch = L.Control.extend({
             this.removeCollapseListeners();
             this._expand();
         }
+    },
+
+    setTasks: function (tasks) {
+        this.taskListDiv.replaceChildren();
+        for (const task of tasks) {
+            const taskLabel = L.DomUtil.create("label", "maps-search-wrapper-task-label", this.taskListDiv);
+            const taskCheck = L.DomUtil.create("input", "maps-search-task-selector", taskLabel);
+            taskCheck.type = "checkbox";
+            taskCheck.dataset.taskId = task.id;
+            if (!this.hiddenTasks.has(task.id)) {
+                taskCheck.checked = true;
+            }
+            const taskName = L.DomUtil.create("span", "maps-search-task-name-label", taskLabel);
+            taskName.innerText = task.name;
+
+            taskCheck.addEventListener("change", (e) => {
+                const showTask = e.target.checked;
+                const taskId = e.target.dataset.taskId;
+                if (showTask) {
+                    this.hiddenTasks.delete(taskId);
+                } else {
+                    this.hiddenTasks.add(taskId);
+                }
+                this.toggleTask(taskId, showTask);
+                const event = new Event("hiddenTasksChanged");
+                event.tasks = [...this.hiddenTasks];
+                this._eventTarget.dispatchEvent(event);
+            });
+        }
+    },
+
+    toggleTask: function (taskId, showTask) {
+        for (const marker of Object.values(this._map._targets)) {
+            if (!marker.options.questId) {
+                continue;
+            }
+            if (marker.options.questId !== taskId) {
+                continue;
+            }
+            if (!marker.getElement) {
+                continue;
+            }
+            const element = marker.getElement();
+            if (!element) {
+                continue;
+            }
+            if (showTask) {
+                element.classList.remove("hidden-task");
+            } else {
+                element.classList.add("hidden-task");
+            }
+        }
+    },
+
+    on: function (eventType, listener, options) {
+        this._eventTarget.addEventListener(eventType, listener, options);
+    },
+
+    once: function (eventType, listener, options) {
+        this._eventTarget.addEventListener(eventType, listener, {
+            ...options,
+            once: true,
+        });
+    },
+
+    off: function (eventType, listener, options) {
+        this._eventTarget.removeEventListener(eventType, listener, options);
     },
 });
 

@@ -137,7 +137,7 @@ function getBounds(bounds) {
 }
 
 function markerIsOnLayer(marker, layer) {
-    if (!layer.options.extents) {
+    if (!layer?.options?.extents) {
         return true;
     }
     var top = marker.options.top || marker.options.position.y;
@@ -304,6 +304,7 @@ function Map() {
         expandMapLegend: false,
         expandSearch: false,
         alwaysShowSnipers: true,
+        hiddenTasks: [],
     });
 
     const mapSettingsRef = useRef(savedMapSettings);
@@ -570,12 +571,22 @@ function Map() {
 
         map.searchControl = L.control
             .mapSearch({
+                searchTitle: tMaps("Search"),
                 placeholderText: tMaps("Task, item or container..."),
                 descriptionText: tMaps("Supports multisearch (e.g. 'labs, ledx, bitcoin')"),
+                taskFilterTitle: tMaps("Task Filter"),
+                taskFilterPlaceholderText: tMaps("Task name"),
+                showAllButtonText: tMaps("Show"),
+                hideAllButtonText: tMaps("Hide"),
                 collapsed: !mapSettingsRef.current.expandSearch,
+                hiddenTasks: mapSettingsRef.current.hiddenTasks,
             })
             .addTo(map);
 
+        map.searchControl.on("hiddenTasksChanged", (e) => {
+            mapSettingsRef.current.hiddenTasks = e.tasks;
+            updateSavedMapSettings();
+        });
         //L.control.scale({position: 'bottomright'}).addTo(map);
 
         mapRef.current = map;
@@ -1788,6 +1799,20 @@ function Map() {
         //add quest markers
         const questItems = L.layerGroup();
         const questObjectives = L.layerGroup();
+        const questSet = new Set();
+        const hiddenTasks = mapSettingsRef.current.hiddenTasks ?? [];
+        const getMarkerClass = (quest, objective) => {
+            const classes = [];
+            if (quest.active && !objective.complete) {
+                classes.push("active-quest-marker");
+            } else {
+                classes.push("inactive-quest-marker");
+            }
+            if (hiddenTasks.includes(quest.id)) {
+                classes.push("hidden-task");
+            }
+            return classes.join(" ");
+        };
         for (const quest of quests) {
             for (const obj of quest.objectives) {
                 if (obj.possibleLocations) {
@@ -1802,12 +1827,12 @@ function Map() {
                             if (!positionIsInBounds(position)) {
                                 continue;
                             }
+                            questSet.add(quest);
                             const questItemIcon = L.icon({
                                 iconUrl: `${process.env.PUBLIC_URL}/maps/interactive/quest_item.png`,
                                 iconSize: [24, 24],
                                 popupAnchor: [0, -12],
-                                className:
-                                    quest.active && !obj.complete ? "active-quest-marker" : "inactive-quest-marker",
+                                className: getMarkerClass(quest, obj),
                             });
                             const questItemMarker = L.marker(pos(position), {
                                 icon: questItemIcon,
@@ -1842,6 +1867,7 @@ function Map() {
                         if (!positionIsInBounds(zone.position)) {
                             continue;
                         }
+                        questSet.add(quest);
                         const rect = L.polygon(outlineToPoly(zone.outline), {
                             color: "#e5e200",
                             weight: 1,
@@ -1851,7 +1877,7 @@ function Map() {
                             iconUrl: `${process.env.PUBLIC_URL}/maps/interactive/quest_objective.png`,
                             iconSize: [24, 24],
                             popupAnchor: [0, -12],
-                            className: quest.active && !obj.complete ? "active-quest-marker" : "inactive-quest-marker",
+                            className: getMarkerClass(quest, obj),
                         });
 
                         const zoneMarker = L.marker(pos(zone.position), {
@@ -1898,6 +1924,7 @@ function Map() {
             }
         }
         refreshMapSearch();
+        mapRef.current?.searchControl?.setTasks([...questSet].sort((a, b) => a.name.localeCompare(b.name)));
     }, [mapData, quests, addLayer]);
 
     // for markers requiring game items

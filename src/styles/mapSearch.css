@@ -12,7 +12,8 @@
     min-width: 250px;
 }
 
-.maps-search-wrapper-reset-search {
+.maps-search-wrapper-reset-search,
+.maps-search-wrapper-reset-task-filter {
     background-color: transparent;
     color: var(--color-gold-two);
     border: 0;
@@ -28,6 +29,10 @@
         cursor: pointer;
         color: var(--color-gold-one);
     }
+}
+
+.maps-search-wrapper-reset-task-filter {
+    top: 100px;
 }
 
 .maps-search-wrapper-info {
@@ -65,6 +70,8 @@
     border: 0;
     margin: 0;
     padding: 0;
+
+    /* max-height: 447px; */
 }
 
 .leaflet-control-icon-search .leaflet-control-icon-search-list,
@@ -76,6 +83,8 @@
     display: flex;
     flex-direction: column;
     position: relative;
+
+    /* overflow-y: scroll; */
 }
 
 .leaflet-control-icon-search-expanded {
@@ -119,4 +128,40 @@
 
 .leaflet-control-icon-search a {
     color: var(--color-gold-two);
+}
+
+.maps-search-wrapper-task-filter-title {
+    font-weight: bold;
+}
+
+.maps-search-task-list {
+    font-size: 14px;
+    overflow-y: scroll;
+}
+
+.maps-search-task-selector {
+    vertical-align: top;
+}
+
+.maps-search-task-list .hide-task {
+    display: none;
+}
+
+.leaflet-marker-pane .hidden-task {
+    display: none;
+}
+
+.maps-search-task-filter-button-container {
+    position: absolute;
+    right: 0px;
+}
+
+.maps-search-task-filter-show-all,
+.maps-search-task-filter-hide-all {
+    padding: 2px 4px;
+    height: 20px;
+}
+
+.maps-search-task-filter-show-all {
+    margin: 0px 2px;
 }
