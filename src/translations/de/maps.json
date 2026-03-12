@@ -55,5 +55,10 @@
     "Required item": "Required item",
     "BTR Stop": "BTR Stop",
     "Player Position": "Player Position",
-    "Always show snipers": "Always show snipers"
+    "Always show snipers": "Always show snipers",
+    "Task Filter": "Task Filter",
+    "Task name": "Task name",
+    "All": "All",
+    "None": "None",
+    "Search": "Search"
 }
