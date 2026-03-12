@@ -221,7 +221,8 @@ function Item() {
                 className = " locked";
             } else if (
                 buyFor.vendor.normalizedName === "flea-market" &&
-                (!handbook.fleaMarket.enabled || settings.playerLevel < item.minLevelForFlea)
+                (!handbook.fleaMarket.enabled ||
+                    settings.playerLevel < Math.max(item.minLevelForFlea, handbook.fleaMarket.minPlayerLevel))
             ) {
                 className = " locked";
             }
@@ -564,14 +565,19 @@ The max profitable price is impacted by the intel center and hideout management 
                                             key={`${currentItemData.id}-flea-market-price-sell`}
                                         >
                                             <Badge
-                                                badgeContent={currentItemData.minLevelForFlea}
+                                                badgeContent={
+                                                    currentItemData.minLevelForFlea ||
+                                                    handbook.fleaMarket.minPlayerLevel
+                                                }
                                                 color={
                                                     settings.playerLevel >= currentItemData.minLevelForFlea
                                                         ? "success"
                                                         : "warning"
                                                 }
                                                 title={t("Player level: {{playerLevel}}", {
-                                                    playerLevel: currentItemData.minLevelForFlea,
+                                                    playerLevel:
+                                                        currentItemData.minLevelForFlea ||
+                                                        handbook.fleaMarket.minPlayerLevel,
                                                 })}
                                             >
                                                 <img
@@ -694,7 +700,8 @@ The max profitable price is impacted by the intel center and hideout management 
                                                             <Badge
                                                                 badgeContent={
                                                                     buyForSource.vendor.normalizedName === "flea-market"
-                                                                        ? currentItemData.minLevelForFlea
+                                                                        ? currentItemData.minLevelForFlea ||
+                                                                          handbook.fleaMarket.minPlayerLevel
                                                                         : null
                                                                 }
                                                                 color={
@@ -704,7 +711,9 @@ The max profitable price is impacted by the intel center and hideout management 
                                                                         : "warning"
                                                                 }
                                                                 title={t("Player level: {{playerLevel}}", {
-                                                                    playerLevel: currentItemData.minLevelForFlea,
+                                                                    playerLevel:
+                                                                        currentItemData.minLevelForFlea ||
+                                                                        handbook.fleaMarket.minPlayerLevel,
                                                                 })}
                                                             >
                                                                 {children}

@@ -339,7 +339,11 @@ function ItemsSummaryTable({ includeItems, includeTraders, includeStations }) {
                                 <div key={"no-flea-tooltip"}>{t("This item can't be sold on the Flea Market")}</div>,
                             );
                         } else if (
-                            !(handbook.fleaMarket.enabled && settings.playerLevel >= props.row.original.minLevelForFlea)
+                            !(
+                                handbook.fleaMarket.enabled &&
+                                settings.playerLevel >=
+                                    Math.max(props.row.original.minLevelForFlea, handbook.fleaMarket.minPlayerLevel)
+                            )
                         ) {
                             priceContent.push(
                                 <Icon

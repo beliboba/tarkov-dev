@@ -275,7 +275,10 @@ function SmallItemTable(props) {
 
     const availableOnFlea = useCallback(
         (item) => {
-            return handbook.fleaMarket.enabled && settings.playerLevel >= item.minLevelForFlea;
+            return (
+                handbook.fleaMarket.enabled &&
+                settings.playerLevel >= Math.max(item.minLevelForFlea, handbook.fleaMarket.minPlayerLevel)
+            );
         },
         [settings, handbook],
     );

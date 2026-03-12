@@ -58,7 +58,11 @@ function CraftTable({
 
     const availableOnFlea = useCallback(
         (item) => {
-            return showAll || (handbook.fleaMarket.enabled && settings.playerLevel >= item.minLevelForFlea);
+            return (
+                showAll ||
+                (handbook.fleaMarket.enabled &&
+                    settings.playerLevel >= Math.max(handbook.fleaMarket.minPlayerLevel, item.minLevelForFlea))
+            );
         },
         [settings, handbook],
     );

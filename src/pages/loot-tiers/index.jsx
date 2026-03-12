@@ -177,7 +177,9 @@ function LootTier(props) {
                 // 1. User has flea enabled
                 // 2. Ignore setting is on (regardless of user's flea setting)
                 const shouldUseFlea =
-                    ignoreFleaSetting || (handbook.fleaMarket.enabled && settings.playerLevel >= item.minLevelForFlea);
+                    ignoreFleaSetting ||
+                    (handbook.fleaMarket.enabled &&
+                        settings.playerLevel >= Math.max(handbook.fleaMarket.minPlayerLevel, item.minLevelForFlea));
 
                 if (shouldUseFlea && !item.types.includes("noFlea")) {
                     const fleaFee = fleaMarketFee(item.basePrice, item.lastLowPrice);
